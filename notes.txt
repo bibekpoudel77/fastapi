@@ -1,0 +1,18 @@
+1. Setup the virtual environment within the project
+    py -3 -m venv venv
+    Here
+    py = python launcher for windows
+    -3 = specifies that Python 3 should be used
+    -m venv = This tells Python to run the venv module which is used to create the virtual environment
+    venv = name of the directory where the virtual environment will be created
+
+2. Activate the venv in the main.py folder by running this command
+    venv\Scripts\activate.bat
+
+3.Import fastapi
+    pip install "fastapi[all]"
+
+4. Run the code
+    uvicorn main:app -- reload
+
+5.
