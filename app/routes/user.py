@@ -2,14 +2,19 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from ..database import get_db
 from .. import models, utils
 from sqlalchemy.orm import Session
-from ..schemas import UserIn, UserOut
+from ..schemas import UserIn, UserOut, TokenData
+from .. import oauth2
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
 # Users CREATE
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=UserOut)
-def create_user(user: UserIn, db: Session = Depends(get_db)):
+def create_user(
+    user: UserIn,
+    db: Session = Depends(get_db),
+    current_user: TokenData = Depends(oauth2.get_current_user),
+):
     user.password = utils.hash(user.password)
     new_user = models.User(**user.dict())
     db.add(new_user)
@@ -45,7 +50,12 @@ def get_user(id: int, db: Session = Depends(get_db)):
 
 # Users UPDATE
 @router.put("/{id}", response_model=UserOut)
-def update_user(id: int, updated_user: UserIn, db: Session = Depends(get_db)):
+def update_user(
+    id: int,
+    updated_user: UserIn,
+    db: Session = Depends(get_db),
+    current_user: TokenData = Depends(oauth2.get_current_user),
+):
     user = db.query(models.User).filter(models.User.id == id)
     if user.first() is None:
         raise HTTPException(
@@ -61,7 +71,11 @@ def update_user(id: int, updated_user: UserIn, db: Session = Depends(get_db)):
 
 # Users DELETE
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user(id: int, db: Session = Depends(get_db)):
+def delete_user(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: TokenData = Depends(oauth2.get_current_user),
+):
     query = db.query(models.User).filter(models.User.id == id)
     if query.first() is None:
         raise HTTPException(

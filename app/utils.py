@@ -1,15 +1,11 @@
 from passlib.context import CryptContext
 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 
 def hash(password: str) -> str:
-    """
-    Hash a password using the bcrypt algorithm.
-
-    Args:
-        password (str): The password to hash.
-
-    Returns:
-        str: The hashed password.
-    """
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
     return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)

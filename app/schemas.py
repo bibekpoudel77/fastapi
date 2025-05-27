@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel
 from datetime import datetime
 from pydantic.networks import EmailStr
@@ -35,3 +36,12 @@ class UserOut(BaseModel):
     model_config = {
         "from_attributes": True
     }  # This allows the model to read data as dictionaries
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    id: Optional[int] = None
