@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, HTTPException, status, Depends
 from ..database import get_db
 from .. import models, oauth2
@@ -14,7 +15,7 @@ def create_post(
     db: Session = Depends(get_db),
     current_user: TokenData = Depends(oauth2.get_current_user),
 ):
-    new_post = models.Post(**post.model_dump())
+    new_post = models.Post(owner_id=current_user.id, **post.model_dump())
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
@@ -23,8 +24,19 @@ def create_post(
 
 # read
 @router.get("/", response_model=list[Post])
-def get_posts(db: Session = Depends(get_db)):
-    posts = db.query(models.Post).all()
+def get_posts(
+    db: Session = Depends(get_db),
+    limit: int = 2,
+    skip: int = 0,
+    search: Optional[str] = "",
+):
+    posts = (
+        db.query(models.Post)
+        .filter(models.Post.title.contains(search))
+        .limit(limit)
+        .offset(skip)
+        .all()
+    )
     if not posts:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -35,13 +47,24 @@ def get_posts(db: Session = Depends(get_db)):
 
 
 @router.get("/{id}", response_model=Post)
-def get_post(id: int, db: Session = Depends(get_db)):
+def get_post(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: TokenData = Depends(oauth2.get_current_user),
+):
     post = db.query(models.Post).filter(models.Post.id == id).first()
     if post == None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Post with id {id} not found",
             headers={"X-Error": "Post not found"},
+        )
+
+    if post.owner_id is not current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to view this post",
+            headers={"X-Error": "Permission denied"},
         )
     return post
 
@@ -63,6 +86,13 @@ def update_post(
             headers={"X-Error": "Post not found"},
         )
 
+    if post.owner_id is not current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to update this post",
+            headers={"X-Error": "Permission denied"},
+        )
+
     query.update(updated_post.dict(), synchronize_session=False)  # type: ignore
     db.commit()
     post = query.first()
@@ -77,11 +107,21 @@ def delete_post(
     current_user: TokenData = Depends(oauth2.get_current_user),
 ):
     query = db.query(models.Post).filter(models.Post.id == id)
-    if query.first() == None:
+    post = query.first()
+
+    # Check if the post exists
+    if post == None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Post with id {id} not found",
             headers={"X-Error": "Post not found"},
+        )
+
+    if post.owner_id is not current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to delete this post",
+            headers={"X-Error": "Permission denied"},
         )
     query.delete()
     db.commit()

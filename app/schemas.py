@@ -15,15 +15,6 @@ class PostUpdate(PostBase):
     pass
 
 
-class Post(PostBase):
-    id: int
-    created_at: datetime
-
-    model_config = {
-        "from_attributes": True
-    }  # This allows the model to read data as dictionaries
-
-
 class UserIn(BaseModel):
     email: EmailStr
     password: str
@@ -45,3 +36,14 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     id: Optional[int] = None
+
+
+class Post(PostBase):
+    id: int
+    created_at: datetime
+    owner_id: int
+    owner: UserOut
+
+    model_config = {
+        "from_attributes": True
+    }  # This allows the model to read data as dictionaries
