@@ -2,8 +2,9 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, status, Depends
 from ..database import get_db
 from .. import models, oauth2
+from sqlalchemy import func
 from sqlalchemy.orm import Session
-from ..schemas import PostBase, Post, TokenData
+from ..schemas import PostBase, Post, PostOut, TokenData
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
 
@@ -23,20 +24,24 @@ def create_post(
 
 
 # read
-@router.get("/", response_model=list[Post])
+@router.get("/", response_model=list[PostOut])
 def get_posts(
     db: Session = Depends(get_db),
-    limit: int = 2,
+    limit: int = 10,
     skip: int = 0,
     search: Optional[str] = "",
 ):
+
     posts = (
-        db.query(models.Post)
+        db.query(models.Post, func.count(models.Vote.post_id).label("votes"))
+        .outerjoin(models.Vote, models.Vote.post_id == models.Post.id)  # Use outerjoin
+        .group_by(models.Post.id)
         .filter(models.Post.title.contains(search))
         .limit(limit)
         .offset(skip)
         .all()
     )
+
     if not posts:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -46,13 +51,21 @@ def get_posts(
     return posts
 
 
-@router.get("/{id}", response_model=Post)
+@router.get("/{id}", response_model=PostOut)
 def get_post(
     id: int,
     db: Session = Depends(get_db),
     current_user: TokenData = Depends(oauth2.get_current_user),
 ):
     post = db.query(models.Post).filter(models.Post.id == id).first()
+    post = (
+        db.query(models.Post, func.count(models.Vote.post_id).label("votes"))
+        .outerjoin(models.Vote, models.Vote.post_id == models.Post.id)  # Use outerjoin
+        .group_by(models.Post.id)
+        .filter(models.Post.id == id)
+        .first()
+    )
+
     if post == None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -60,7 +73,7 @@ def get_post(
             headers={"X-Error": "Post not found"},
         )
 
-    if post.owner_id is not current_user.id:
+    if post.Post.owner_id is not current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to view this post",

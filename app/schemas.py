@@ -1,7 +1,8 @@
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 from pydantic.networks import EmailStr
+from typing import Annotated
 
 
 # schema
@@ -43,7 +44,16 @@ class Post(PostBase):
     created_at: datetime
     owner_id: int
     owner: UserOut
+    model_config = {"from_attributes": True}
 
-    model_config = {
-        "from_attributes": True
-    }  # This allows the model to read data as dictionaries
+
+class PostOut(BaseModel):
+    Post: Post
+    votes: int
+    model_config = {"from_attributes": True}
+
+
+class Vote(BaseModel):
+    post_id: int
+    # dir must be either 0 or 1
+    dir: Annotated[int, Field(strict=True, gt=-1, le=1)]
