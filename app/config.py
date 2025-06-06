@@ -7,9 +7,7 @@ class Settings(BaseSettings):
     DB_PORT: int = 5432
     DB_NAME: str = "fastapi"
     DB_USER: str = "postgres"
-    DB_PASSWORD: str = (
-        "root"  # Default values can be overridden by environment variables
-    )
+    DB_PASSWORD: str = "root"
     DB_URL: str = ""
 
     class Config:

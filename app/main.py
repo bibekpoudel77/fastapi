@@ -4,7 +4,8 @@ from . import models
 from .routes import post, user, auth, vote
 
 # Create the database tables
-models.Base.metadata.create_all(bind=engine)
+# models.Base.metadata.create_all(bind=engine)
+# This used to create tables when the app starts, but it's commented out as we started using Alembic for migrations.
 
 app = FastAPI()
 

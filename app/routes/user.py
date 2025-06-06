@@ -13,7 +13,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
 def create_user(
     user: UserIn,
     db: Session = Depends(get_db),
-    current_user: TokenData = Depends(oauth2.get_current_user),
+    # current_user: TokenData = Depends(oauth2.get_current_user),
 ):
     user.password = utils.hash(user.password)
     new_user = models.User(**user.dict())
